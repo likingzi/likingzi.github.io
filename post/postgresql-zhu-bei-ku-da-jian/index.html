@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>PostgreSQL主备库搭建 | Liking&#39;s DataOps Blog</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://likingzi.github.io/favicon.ico?v=1676544410425">
+<link rel="stylesheet" href="https://likingzi.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="pg主备库的搭建，首先需在2个节点安装pg软件，然后依次在2个节点配置主备。
+本文采用os为CentOS7.6，pg版本使用14.2，以下为详细部署步骤。
+本文两个节点的ip地址如下：
+[root@node1:0 ~]# cat /etc/..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://likingzi.github.io">
+        <img src="https://likingzi.github.io/images/avatar.png?v=1676544410425" class="site-logo">
+        <h1 class="site-title">Liking&#39;s DataOps Blog</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/postgresql" class="site-nav">
+            postgresql
+          </a>
+        
+      
+        
+          <a href="/mysql" class="site-nav">
+            mysql
+          </a>
+        
+      
+        
+          <a href="/mongodb" class="site-nav">
+            mongodb
+          </a>
+        
+      
+        
+          <a href="/oracle" class="site-nav">
+            oracle
+          </a>
+        
+      
+        
+          <a href="/devops" class="site-nav">
+            运维知识
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/likingzi" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      愿你出走半生，归来仍是少年
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://likingzi.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">PostgreSQL主备库搭建</h2>
+            <div class="post-date">2023-02-16</div>
+            
+            <div class="post-content" v-pre>
+              <p>pg主备库的搭建，首先需在2个节点安装pg软件，然后依次在2个节点配置主备。<br>
+本文采用os为CentOS7.6，pg版本使用14.2，以下为详细部署步骤。<br>
+本文两个节点的ip地址如下：</p>
+<pre><code>[root@node1:0 ~]# cat /etc/hosts
+#CentOS Linux release 7.6.1810 (Core)
+192.168.222.11 node1
+192.168.222.12 node2
+</code></pre>
+<h1 id="安装-配置-启动">■■■ 安装、配置、启动</h1>
+<h2 id="官网下载安装不推荐采用此方式安装">■■ 官网下载安装【不推荐采用此方式安装】</h2>
+<h3 id="install-the-repository-rpm">■ Install the repository RPM</h3>
+<p>yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm</p>
+<h3 id="install-postgresql">■ Install PostgreSQL</h3>
+<p>yum install -y postgresql14-server</p>
+<h3 id="optionally-initialize-the-database-and-enable-automatic-start">■ Optionally initialize the database and enable automatic start</h3>
+<p>/usr/pgsql-14/bin/postgresql-14-setup initdb<br>
+systemctl start postgresql-14</p>
+<h3 id="stop-and-uninstall">■ Stop and uninstall</h3>
+<p>systemctl stop postgresql-14<br>
+yum remove -y postgresql*<br>
+yum remove -y pgdg*</p>
+<h2 id="编译安装推荐采用此方式安装">■■ 编译安装【推荐采用此方式安装】</h2>
+<p>可参考pg中文社区<br>
+cd /u01/pg<br>
+wget https://ftp.postgresql.org/pub/source/v14.2/postgresql-14.2.tar.bz2 --no-check-certificate<br>
+tar xvfj postgresql*.bz2<br>
+cd postgresql-14.2<br>
+./configure --prefix=/u01/pg/pgsql<br>
+此时如果缺少readline，则yum install -y readline-devel<br>
+mkdir -p /u01/pg/pgsql<br>
+make install-world</p>
+<h2 id="配置">■■ 配置</h2>
+<p>adduser postgres<br>
+passwd postgres<br>
+mkdir /u01/pg/pgsql/data<br>
+chown -R postgres:postgres /u01/pg<br>
+su - postgres</p>
+<h3 id="修改默认数据路径">■ 修改默认数据路径</h3>
+<p>export PGDATA=/u01/pg/pgsql/data<br>
+export PATH=/u01/pg/pgsql/bin:$PATH</p>
+<h3 id="初始化数据库">■ 初始化数据库</h3>
+<p>initdb</p>
+<h3 id="修改其他默认配置">■ 修改其他默认配置</h3>
+<p>查看配置文件：<br>
+grep -Pv &quot;<sup>#|</sup>$|^\t&quot; $PGDATA/postgresql.conf</p>
+<p>vim $PGDATA/postgresql.conf</p>
+<pre><code># 默认监听在127.0.0.1
+#listen_addresses = 'localhost'         # what IP address(es) to listen on;
+# 配置监听在任意ip
+listen_addresses = '*'
+# 打开log收集
+logging_collector = on
+注：日志文件默认在log目录下
+</code></pre>
+<p>vim $PGDATA/pg_hba.conf</p>
+<pre><code># IPv4 local connections:
+# 默认配置，只允许本机访问
+host    all             all             127.0.0.1/32            trust
+# 允许所有ip访问
+host    all             all             0.0.0.0/0               trust
+# 允许指定网段访问
+host    all             all             192.168.222.0/24        trust
+</code></pre>
+<h3 id="启停数据库">■ 启停数据库</h3>
+<p>pg_ctl status<br>
+pg_ctl start<br>
+pg_ctl stop</p>
+<h3 id="客户端工具使用开源的pgadmin">■ 客户端工具使用开源的pgAdmin</h3>
+<p>Set Master Password: postgres</p>
+<h1 id="主从配置">■■■ 主从配置</h1>
+<h2 id="主节点">■■ 主节点</h2>
+<h3 id="创建用于主从访问的用户-修改postgres用户的密码用于远程登录">■ 创建用于主从访问的用户， 修改postgres用户的密码，用于远程登录</h3>
+<p>su - postgres</p>
+<pre><code>psql
+# 创建 postgres 密码
+ALTER USER postgres WITH PASSWORD 'postgres';
+# 创建 从库 replica 用户密码
+CREATE ROLE replica login replication encrypted password 'replica';
+# 检查账号
+SELECT usename from pg_user;
+SELECT rolname from pg_roles;
+</code></pre>
+<h3 id="修改-pg_hbaconf-配置">■ 修改 pg_hba.conf 配置</h3>
+<p>vim $PGDATA/pg_hba.conf</p>
+<pre><code># 添加从库网段
+host    all             all             0.0.0.0/0               trust
+# replication privilege.
+local   replication     all                                     peer
+host    replication     replica         192.168.222.12/24       md5
+注意此处 192.168.222.12/24 需修改为从库的 IP 段
+</code></pre>
+<p>■ 修改 postgresql.conf 配置<br>
+vim $PGDATA/postgresql.conf</p>
+<pre><code>listen_addresses = '*'
+wal_level = hot_standby
+synchronous_commit = remote_write
+# synchronous_commit 参考文档可选其他 on
+max_wal_senders = 32     #同步最大的进程数量
+wal_sender_timeout = 60s #流复制主机发送数据的超时时间
+max_connections = 100    #最大连接数，从库的max_connections必须要大于主库的
+</code></pre>
+<h2 id="从节点">■■ 从节点</h2>
+<h3 id="从主库同步数据">■ 从主库同步数据</h3>
+<p>pg_basebackup -D $PGDATA -h node1 -p 5432 -U replica -X stream -P<br>
+注：从库无需初始化</p>
+<h3 id="修改-postgresqlconf-配置">■ 修改 postgresql.conf 配置</h3>
+<p>从 PostgreSQL 12 开始已移除了 recovery.conf 文件，相关配置合并到了 postgresql.conf 中，由于从主库同步数据库，其中配置也需要移除和修改<br>
+vim $PGDATA/postgresql.conf</p>
+<pre><code># 移除或注释 wal_level
+wal_level = xxx
+# 修改或添加以下
+primary_conninfo = 'host=192.168.222.11 port=5432 user=replica password=replica'
+recovery_target_timeline = 'latest'
+</code></pre>
+<h3 id="创建-standbysignal">■ 创建 standby.signal</h3>
+<p>创建 standby.signal 文件，声明从库。<br>
+vim $PGDATA/standby.signal</p>
+<pre><code># 声明从库
+standby_mode = on
+</code></pre>
+<h3 id="确认数据目录权限避免踩坑">■ 确认数据目录权限，避免踩坑</h3>
+<p>chown -R postgres.postgres $PGDATA</p>
+<h3 id="启动">■ 启动</h3>
+<p>pg_ctl start</p>
+<h2 id="确认同步">■■ 确认同步</h2>
+<h3 id="主库查看">■ 主库查看</h3>
+<pre><code>ps aux |grep sender
+# 返回 postgres: walsender replica 192.168.222.12(64218) streaming 3/27000148
+
+select application_name, state, sync_priority, sync_state from pg_stat_replication;
+ application_name |   state   | sync_priority | sync_state 
+------------------+-----------+---------------+------------
+ walreceiver      | streaming |             0 | async
+
+select pid,state,client_addr,sync_priority,sync_state from pg_stat_replication;
+  pid  |   state   |  client_addr   | sync_priority | sync_state 
+-------+-----------+----------------+---------------+------------
+ 33328 | streaming | 192.168.222.12 |             0 | async
+</code></pre>
+<h3 id="从库查看">■ 从库查看</h3>
+<pre><code>ps aux |grep receiver
+# 返回 postgres: walreceiver streaming 3/27000148
+</code></pre>
+<h1 id="监控">■■■ 监控</h1>
+<h2 id="sampler">■■ Sampler</h2>
+<p>Sampler 是一个用于 shell 命令执行、可视化和警报的工具，配置了一个简单的 YAML 文件。</p>
+<p>wget https://github.com/sqshq/sampler/releases/download/v1.1.0/sampler-1.1.0-linux-amd64 -O sampler<br>
+chmod +x sampler</p>
+<h3 id="在yaml文件中定义shell命令">■ 在yaml文件中定义shell命令</h3>
+<pre><code>cat &gt; config.yml &lt;&lt;-'EOF'
+variables:
+    PGPASSWORD: postgres
+    postgres_connection: psql -h localhost -U postgres --no-align --tuples-only
+runcharts:
+  - title: Data write(Byte)
+    position: [[0, 8], [20, 12]]
+    rate-ms: 500
+    legend:
+        enabled: true
+        details: false
+    scale: 2
+    items:
+      - label: background writer
+        color: 178
+        sample: psql -At -U postgres -c &quot;select 8 * (buffers_checkpoint + buffers_clean
+            + buffers_backend)/1024 as total_writen from pg_stat_bgwriter;&quot;
+      - label: checkpoint write
+        color: 162
+        sample: psql -At -U postgres -c &quot;select buffers_checkpoint * 8 / (checkpoints_timed
+            + checkpoints_req) as checkpoint_write_avg from pg_stat_bgwriter&quot;
+  - title: PostgreSQL connections
+    position: [[40, 8], [40, 12]]
+    rate-ms: 500
+    legend:
+        enabled: true
+        details: false
+    scale: 2
+    items:
+      - label: active connections
+        color: 178
+        sample: psql -At -U postgres -c &quot;select count(*) from pg_stat_activity where
+            state = 'active' and pid &lt;&gt; pg_backend_pid();&quot;
+      - label: idle connections
+        color: 162
+        sample: psql -At -U postgres -c &quot;select count(*) from pg_stat_activity where
+            state = 'idle' and pid &lt;&gt; pg_backend_pid();&quot;
+      - label: idle in transaction connections
+        color: 32
+        sample: psql -At -U postgres -c &quot;select count(*) from pg_stat_activity where
+            state = 'idle in transaction' and pid &lt;&gt; pg_backend_pid();&quot;
+barcharts:
+  - title: PostgreSQL Database Status
+    position: [[0, 0], [40, 8]]
+    rate-ms: 500
+    scale: 0
+    items:
+      - label: tuple insert
+        init: $postgres_connection
+        sample: select tup_inserted from pg_stat_database where datname = current_database();
+      - label: tuple delete
+        init: $postgres_connection
+        sample: select tup_deleted from pg_stat_database where datname = current_database();
+      - label: tuple update
+        init: $postgres_connection
+        sample: select tup_updated from pg_stat_database where datname = current_database();
+      - label: tuple fetch
+        init: $postgres_connection
+        sample: select tup_fetched from pg_stat_database where datname = current_database();
+gauges:
+  - title: PostgreSQL Database Age
+    position: [[0, 32], [40, 8]]
+    rate-ms: 500
+    scale: 2
+    color: 122
+    percent-only: false
+    cur:
+        sample: psql -At -U postgres -c &quot;select age(datfrozenxid) from pg_database
+            where datname = current_database();&quot;
+    max:
+        sample: psql -At -U postgres -c &quot;select 210000&quot;
+    min:
+        sample: psql -At -U postgres -c &quot;select 100&quot;
+sparklines:
+  - title: CPU usage
+    position: [[0, 20], [40, 12]]
+    rate-ms: 200
+    scale: 0
+    sample: ps -A -o %cpu | awk '{s+=$1} END {print s}'
+  - title: PostgreSQL cache hit ratio
+    position: [[40, 20], [40, 12]]
+    init: $postgres_connection
+    sample: select round(sum(blks_hit)*100/sum(blks_hit+blks_read),2)::numeric from
+        pg_stat_database where datname = current_database();
+  - title: PostgreSQL transaction commit ratio
+    position: [[40, 0], [40, 8]]
+    init: $postgres_connection
+    sample: select round(100*(xact_commit::numeric/(case when xact_commit &gt; 0 then
+        xact_commit else 1 end + xact_rollback)),2)::numeric as commit_ratio from
+        pg_stat_database where datname = current_database();
+textboxes:
+  - title: Server status
+    position: [[20, 8], [20, 12]]
+    rate-ms: 500
+    sample: top -bn 1 | head -n 5
+asciiboxes:
+  - title: PostgreSQL Version
+    position: [[40, 32], [40, 8]]
+    rate-ms: 500
+    color: 43
+    sample: psql -At -U postgres -c &quot;select version()&quot;
+    border: false
+    font: 2d
+EOF
+</code></pre>
+<h3 id="运行">■ 运行</h3>
+<p>/u01/pg/monitor/sampler -c /u01/pg/monitor/config.yml<br>
+<img src="https://likingzi.github.io/post-images/pgmonitor.jpg" alt="" loading="lazy"></p>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://likingzi.github.io/post/ApacheAxis/">
+                  <h3 class="post-title">
+                    漏洞扫描与安全加固之Apache Axis组件
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+
+  </body>
+</html>

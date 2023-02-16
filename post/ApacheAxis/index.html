@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>漏洞扫描与安全加固之Apache Axis组件 | Liking&#39;s DataOps Blog</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://likingzi.github.io/favicon.ico?v=1676544410425">
+<link rel="stylesheet" href="https://likingzi.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="一、Apache Axis组件高危漏洞自查及整改
+Apache Axis组件存在由配置不当导致的远程代码执行风险。
+1. 影响版本
+Axis1 和Axis2各版本均受影响
+2. 处置建议
+1）禁用此服务的远程访问:修改 AXIS 目录下 W..." />
+    <meta name="keywords" content="Apache Axis" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://likingzi.github.io">
+        <img src="https://likingzi.github.io/images/avatar.png?v=1676544410425" class="site-logo">
+        <h1 class="site-title">Liking&#39;s DataOps Blog</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/postgresql" class="site-nav">
+            postgresql
+          </a>
+        
+      
+        
+          <a href="/mysql" class="site-nav">
+            mysql
+          </a>
+        
+      
+        
+          <a href="/mongodb" class="site-nav">
+            mongodb
+          </a>
+        
+      
+        
+          <a href="/oracle" class="site-nav">
+            oracle
+          </a>
+        
+      
+        
+          <a href="/devops" class="site-nav">
+            运维知识
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/likingzi" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      愿你出走半生，归来仍是少年
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://likingzi.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">漏洞扫描与安全加固之Apache Axis组件</h2>
+            <div class="post-date">2023-02-09</div>
+            
+            <div class="post-content" v-pre>
+              <h1 id="一-apache-axis组件高危漏洞自查及整改">一、Apache Axis组件高危漏洞自查及整改</h1>
+<p>Apache Axis组件存在由配置不当导致的远程代码执行风险。</p>
+<h2 id="1-影响版本">1. 影响版本</h2>
+<p>Axis1 和Axis2各版本均受影响</p>
+<h2 id="2-处置建议">2. 处置建议</h2>
+<p>1）禁用此服务的远程访问:修改 AXIS 目录下 WEB-INF 文件夹中的 server-config.wsdd 文件，查找参数&quot;enableRemoteAdmin&quot;，将其设置为 false。<br>
+2）若无后台管理需求，可以直接关闭services/AdminService页面。</p>
+<h2 id="3-临时处置建议">3. 临时处置建议</h2>
+<p>通过ACL禁止对/services/AdminService路径的除本机以外的访问。通过其他主机访问https://目标IP/web应用路径/services/AdminService,无法访问则证明处置成功</p>
+<p>【本文档由同事zhengch分享，在此表达敬意！】</p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://likingzi.github.io/tag/M5ggh-vpH/" class="tag">
+                    Apache Axis
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://likingzi.github.io/post/hello-gridea/">
+                  <h3 class="post-title">
+                    Hello Gridea
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+
+  </body>
+</html>
